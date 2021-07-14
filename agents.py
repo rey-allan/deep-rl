@@ -1,66 +1,28 @@
 from abc import ABC, abstractmethod
-from typing import Tuple, Union
+from typing import Tuple
 
 import torch
 import torch.nn as nn
 
 
 class Agent(ABC):
-    """A class that defines the interface for Deep RL agents"""
-
-    @property
-    @abstractmethod
-    def pi(self) -> nn.Module:
-        """The policy function approximator
-
-        :raises NotImplementedError: Property must be implemented by concrete agent classes
-        :return: The policy approximator as a PyTorch module
-        :rtype: nn.Module
-        """
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def v(self) -> nn.Module:
-        """The value function approximator
-
-        :raises NotImplementedError: Property must be implemented by concrete agebnt classes
-        :return: The value approximator as a PyTorch module
-        :rtype: nn.Module
-        """
-        raise NotImplementedError
+    """A class that defines the basic interface for Deep RL agents (discrete)"""
 
     @abstractmethod
-    def act(self, s: torch.Tensor) -> Union[int, float]:
+    def act(self, s: torch.Tensor) -> int:
         """Selects an action for the given state
 
         :param s: The state to select an action for
         :type s: torch.Tensor
         :raises NotImplementedError: Method must be implemented by concrete agent classes
-        :return: An action (either discrete or continuous)
-        :rtype: Union[int, float]
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def step(self, s: torch.Tensor, a: Union[int, float]) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Performs one single step
-
-        Computes the value of the given state and the log probability, pi(a|s), of the given action
-
-        :param s: The state to compute value for
-        :type s: torch.Tensor
-        :param a: The action to compute log probability for
-        :type a: Union[int, float]
-        :raises NotImplementedError: Method must be implemented by concrete learner classes
-        :return: A tuple of V(s) and pi(a|s) (batch_size, action_size)
-        :rtype: Tuple[torch.Tensor, torch.Tensor]
+        :return: An action (discrete)
+        :rtype: int
         """
         raise NotImplementedError
 
 
-class DiscreteAgent(Agent):
-    """An agent that acts on discrete action spaces"""
+class ActorCriticAgent(Agent):
+    """An actor-critic agent that acts on discrete action spaces"""
 
     def __init__(self, num_features: int, num_actions: int, device: torch.device) -> None:
         # Architecture suggested in the paper "Benchmarking Deep Reinforcement Learning for Continuous Control"
@@ -92,16 +54,37 @@ class DiscreteAgent(Agent):
 
     @property
     def pi(self) -> nn.Module:
+        """The policy function approximator
+
+        :return: The policy approximator as a PyTorch module
+        :rtype: nn.Module
+        """
         return self._pi
 
     @property
     def v(self) -> nn.Module:
+        """The value function approximator
+
+        :return: The value approximator as a PyTorch module
+        :rtype: nn.Module
+        """
         return self._v
 
-    def act(self, s: torch.Tensor) -> Union[int, float]:
+    def act(self, s: torch.Tensor) -> int:
         return torch.distributions.Categorical(self._pi(s.to(self._device))).sample().item()
 
-    def step(self, s: torch.Tensor, a: Union[int, float]) -> Tuple[torch.Tensor, float]:
+    def step(self, s: torch.Tensor, a: int) -> Tuple[torch.Tensor, float]:
+        """Performs one single step
+
+        Computes the value of the given state and the log probability, pi(a|s), of the given action
+
+        :param s: The state to compute value for
+        :type s: torch.Tensor
+        :param a: The action to compute log probability for
+        :type a: int
+        :return: A tuple of V(s) and pi(a|s) (batch_size, action_size)
+        :rtype: Tuple[torch.Tensor, torch.Tensor]
+        """
         s = s.to(self._device)
         probs = self._pi(s)
         distribution = torch.distributions.Categorical(probs)

@@ -8,7 +8,7 @@ import torch
 import torch.optim as optim
 from tqdm import tqdm
 
-from agents import Agent, DiscreteAgent
+from agents import ActorCriticAgent
 from util import evaluate, plot_rewards, render_interaction
 
 # For reproducibility
@@ -23,7 +23,7 @@ Data = namedtuple("Data", ["values", "log_probs", "returns", "advantages"])
 # pylint: disable=too-many-locals
 def vpg(
     env: gym.Env,
-    agent: Agent,
+    agent: ActorCriticAgent,
     epochs: int,
     num_episodes: int,
     max_steps: int,
@@ -36,7 +36,7 @@ def vpg(
     :param env: The environment to train the agent in
     :type env: gym.Env
     :param agent: The agent to train
-    :type agent: Agent
+    :type agent: ActorCriticAgent
     :param epochs: The number of epochs to train the agent for
     :type epochs: int
     :param num_episodes: The number of episodes to sample per epoch
@@ -86,7 +86,7 @@ def vpg(
 
 
 def _sample_episodes(
-    env: gym.Env, agent: Agent, num_episodes: int, max_steps: int
+    env: gym.Env, agent: ActorCriticAgent, num_episodes: int, max_steps: int
 ) -> Tuple[List[List[Trajectory]], List[float]]:
     episodes = []
     rewards = []
@@ -118,7 +118,7 @@ def _sample_episodes(
     return episodes, rewards
 
 
-def _process_episodes(episodes: List[List[Trajectory]], agent: Agent, gamma: float) -> Data:
+def _process_episodes(episodes: List[List[Trajectory]], agent: ActorCriticAgent, gamma: float) -> Data:
     values = []
     log_probs = []
     returns = []
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     parser.add_argument("--save-gif", action="store_true", help="Save a GIF of an interaction after training")
     args = parser.parse_args()
 
-    agent = DiscreteAgent(num_features=4, num_actions=2, device=device)
+    agent = ActorCriticAgent(num_features=4, num_actions=2, device=device)
     env = gym.make("CartPole-v1")
     # For reproducibility
     env.seed(24)

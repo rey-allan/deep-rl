@@ -3,6 +3,7 @@ import platform
 # MacOS doesn't work with the default `tkinter` backend
 if platform.system() == "Darwin":
     import matplotlib
+
     matplotlib.use("macosx")
 
 from pathlib import Path
