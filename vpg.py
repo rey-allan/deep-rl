@@ -177,7 +177,7 @@ if __name__ == "__main__":
         verbose=args.verbose,
     )
 
-    plot_rewards(rewards, ma_window=100, title="VPG on CartPole-v1", output_dir="vpg", filename="CartPole-v1")
+    plot_rewards(rewards, title="VPG on CartPole-v1", output_dir="vpg", filename="CartPole-v1")
 
     print("Evaluating agent")
     evaluate(env, agent, args.eval_episodes, args.verbose)
