@@ -6,10 +6,13 @@ if platform.system() == "Darwin":
 
     matplotlib.use("macosx")
 
+# pylint: disable=wrong-import-position
 from pathlib import Path
 from typing import List, Tuple
 
 import gym
+
+# pylint: disable=ungrouped-imports
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -50,13 +53,11 @@ def evaluate(env: gym.Env, agent: Agent, episodes: int, verbose: bool) -> None:
     print(f"Mean reward over {episodes} episodes: {np.mean(rewards)}")
 
 
-def plot_rewards(rewards: List[float], ma_window: int, title: str, output_dir: str, filename: str) -> None:
-    """Plots the given rewards per episode with a moving average overlayed
+def plot_rewards(rewards: List[float], title: str, output_dir: str, filename: str) -> None:
+    """Plots the given rewards per episode
 
     :param rewards: The rewards to plots, assumed to be one per _episode_
     :type rewards: List[float]
-    :param ma_window: The moving average window to use
-    :type ma_window: int
     :param title: The title for the plot
     :type title: str
     :param output_dir: str
@@ -65,12 +66,10 @@ def plot_rewards(rewards: List[float], ma_window: int, title: str, output_dir: s
     :type filename: str
     """
     Path(f"./output/{output_dir}").mkdir(exist_ok=True)
-    plt.scatter(np.arange(len(rewards)), rewards, label="Reward per episode")
-    plt.plot(_moving_average(rewards, ma_window), label=f"Moving average ({ma_window})", color="orange", linewidth=2.5)
+    plt.plot(rewards)
     plt.title(title)
     plt.xlabel("Episode")
     plt.ylabel("Reward")
-    plt.legend()
     plt.savefig(f"./output/{output_dir}/{filename}.png")
 
 
@@ -107,11 +106,6 @@ def render_interaction(env: gym.Env, agent: Agent, output_dir: str, filename: st
     env.close()
     print(f"Total reward from interaction: {reward}")
     _to_gif(frames, f"{output_dir}/{filename}")
-
-
-def _moving_average(x, n):
-    cumsum = np.cumsum(x)
-    return (cumsum[n:] - cumsum[:-n]) / float(n)
 
 
 def _to_gif(frames: List[np.ndarray], filename: str, size: Tuple[int, int] = (72, 72), dpi: int = 72) -> None:
