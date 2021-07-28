@@ -82,16 +82,16 @@ class ActorCriticAgent(Agent):
     def act(self, s: torch.Tensor) -> int:
         return torch.distributions.Categorical(self._pi(s.to(self._device))).sample().item()
 
-    def step(self, s: torch.Tensor, a: int) -> Tuple[torch.Tensor, float]:
+    def step(self, s: torch.Tensor, a: torch.Tensor) -> Tuple[torch.Tensor, float]:
         """Performs one single step
 
-        Computes the value of the given state and the log probability, pi(a|s), of the given action
+        Computes the value of the given states and the log probabilities, pi(a|s), of the given actions
 
-        :param s: The state to compute value for
+        :param s: The states to compute values for
         :type s: torch.Tensor
-        :param a: The action to compute log probability for
-        :type a: int
-        :return: A tuple of V(s) and pi(a|s) (batch_size, action_size)
+        :param a: The actions to compute log probabilities for
+        :type a: torch.Tensor
+        :return: A tuple of V(s) (batch_size,) and pi(a|s) (batch_size,)
         :rtype: Tuple[torch.Tensor, torch.Tensor]
         """
         s = s.to(self._device)
@@ -100,7 +100,7 @@ class ActorCriticAgent(Agent):
         values = self._v(s)
 
         # pylint: disable=not-callable
-        return values, distribution.log_prob(torch.as_tensor(a).to(self._device))
+        return values.squeeze(), distribution.log_prob(a.to(self._device))
 
 
 class QAgent(Agent):
