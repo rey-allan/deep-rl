@@ -1,6 +1,5 @@
 import argparse
 from collections import namedtuple
-from copy import copy
 from typing import List, Tuple
 
 import gym
@@ -16,7 +15,7 @@ torch.manual_seed(24)
 # Device configuration
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-Trajectory = namedtuple("Trajectory", ["state", "action", "reward"])
+Episode = namedtuple("Episode", ["states", "actions", "rewards"])
 Data = namedtuple("Data", ["values", "log_probs", "returns", "advantages"])
 
 
@@ -66,19 +65,13 @@ def vpg(
         pi_optimizer.zero_grad()
         # We use the negative loss because policy optimization is done using gradient _ascent_
         # This is because in policy gradient methods, the "loss" is a performance measure that is _maximized_
-        pi_loss = 0.0
-        for log_prob, advantage in zip(data.log_probs, data.advantages):
-            pi_loss += -advantage * log_prob
-        pi_loss = pi_loss.mean()
+        pi_loss = -(data.advantages * data.log_probs).mean()
         pi_loss.backward()
         pi_optimizer.step()
 
         # Update the value function
         v_optimizer.zero_grad()
-        v_loss = 0.0
-        for value, ret in zip(data.values, data.returns):
-            v_loss += (value - ret) ** 2
-        v_loss = v_loss.mean()
+        v_loss = ((data.values - data.returns) ** 2).mean()
         v_loss.backward()
         v_optimizer.step()
 
@@ -87,12 +80,15 @@ def vpg(
 
 def _sample_episodes(
     env: gym.Env, agent: ActorCriticAgent, num_episodes: int, max_steps: int
-) -> Tuple[List[List[Trajectory]], List[float]]:
+) -> Tuple[List[Episode], List[float]]:
     episodes = []
     rewards = []
 
     for _ in range(num_episodes):
-        trajectories = []
+        states = []
+        actions = []
+        rews = []
+
         s = torch.from_numpy(env.reset()).float()
         done = False
         steps = 0
@@ -101,7 +97,11 @@ def _sample_episodes(
         while not done and steps < max_steps:
             a = agent.act(s)
             s_prime, r, done, _ = env.step(a)
-            trajectories.append(Trajectory(s, a, r))
+
+            states.append(s)
+            actions.append(torch.as_tensor(a))
+            rews.append(torch.as_tensor(r))
+
             s = torch.from_numpy(s_prime).float()
             steps += 1
             reward += r
@@ -109,43 +109,52 @@ def _sample_episodes(
         # If the episode got truncated then bootstrap to approximate the missing returns
         if not done:
             a = agent.act(s)
-            v, _ = agent.step(s, a)
-            trajectories.append(Trajectory(s, a, v))
+            v, _ = agent.step(s, torch.as_tensor(a))
+            states.append(s)
+            actions.append(torch.as_tensor(a))
+            rews.append(v)
 
-        episodes.append(trajectories)
+        # Rewards are not converted to tensor since we compute the return by backtracking through the list
+        episodes.append(Episode(torch.stack(states), torch.stack(actions), rews))
         rewards.append(reward)
 
     return episodes, rewards
 
 
-def _process_episodes(episodes: List[List[Trajectory]], agent: ActorCriticAgent, gamma: float) -> Data:
+def _process_episodes(episodes: List[Episode], agent: ActorCriticAgent, gamma: float) -> Data:
     values = []
     log_probs = []
     returns = []
     advantages = []
 
     for episode in episodes:
-        trajectories = copy(episode)
+        rews = episode.rewards
         # Reverse the list so we start backpropagating the return from the last episode
-        trajectories.reverse()
+        rews.reverse()
 
-        # Compute tuples of [V(s_t), log pi(A_t|S_t), G_t, Adv(S_t,A_t)]
+        # Compute the return G_t:T
         g = 0
-        for t in trajectories:
-            # Compute the return G_t:T
-            g = t.reward + gamma * g
+        G_t = []
+        for r in rews:
+            g = r + gamma * g
+            G_t.append(g)
 
-            v, log_prob = agent.step(t.state, t.action)
+        # Reverse the list of returns so that we start from the first timestep
+        G_t.reverse()
+        G_t = torch.as_tensor(G_t).to(device)
 
-            # Baseline (i.e. advantage function) using the value function approximator
-            advantage = g - v.detach()
+        # Compute log pi(A_t|S_t) and Adv(S_t,A_t)
+        v, log_prob = agent.step(episode.states, episode.actions)
+        advantage = G_t - v.detach()
 
-            values.append(v)
-            log_probs.append(log_prob)
-            returns.append(g)
-            advantages.append(advantage)
+        values.append(v)
+        log_probs.append(log_prob)
+        returns.append(G_t)
+        advantages.append(advantage)
 
-    return Data(values, log_probs, returns, advantages)
+    return Data(
+        torch.cat(values, dim=0), torch.cat(log_probs, dim=0), torch.cat(returns, dim=0), torch.cat(advantages, dim=0)
+    )
 
 
 if __name__ == "__main__":

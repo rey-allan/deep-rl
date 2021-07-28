@@ -132,7 +132,7 @@ def _sample_episodes(
         # If the episode got truncated then bootstrap to approximate the missing returns
         if not done:
             a = agent.act(s)
-            v, _ = agent.step(s, a)
+            v, _ = agent.step(s, torch.as_tensor(a))
             states.append(s)
             actions.append(torch.as_tensor(a))
             rews.append(v)
@@ -175,7 +175,9 @@ def _process_episodes(episodes: List[Episode], agent: ActorCriticAgent, gamma: f
         returns.append(G_t)
         advantages.append(advantage)
 
-    return Data(torch.cat(values), torch.cat(log_probs), torch.cat(returns), torch.cat(advantages))
+    return Data(
+        torch.cat(values, dim=0), torch.cat(log_probs, dim=0), torch.cat(returns, dim=0), torch.cat(advantages, dim=0)
+    )
 
 
 if __name__ == "__main__":
