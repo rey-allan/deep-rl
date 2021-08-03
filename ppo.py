@@ -7,7 +7,7 @@ import torch
 import torch.optim as optim
 from tqdm import tqdm
 
-from agents import ActorCriticAgent
+from agents import DiscreteActorCriticAgent
 from util import evaluate, plot_rewards, render_interaction
 
 # For reproducibility
@@ -22,7 +22,7 @@ Data = namedtuple("Data", ["values", "log_probs", "returns", "advantages"])
 # pylint: disable=too-many-locals
 def ppo(
     env: gym.Env,
-    agent: ActorCriticAgent,
+    agent: DiscreteActorCriticAgent,
     epochs: int,
     num_episodes: int,
     max_steps: int,
@@ -37,7 +37,7 @@ def ppo(
     :param env: The environment to train the agent in
     :type env: gym.Env
     :param agent: The agent to train
-    :type agent: ActorCriticAgent
+    :type agent: DiscreteActorCriticAgent
     :param epochs: The number of epochs to train the agent for
     :type epochs: int
     :param num_episodes: The number of episodes to sample per epoch
@@ -102,7 +102,7 @@ def ppo(
 
 
 def _sample_episodes(
-    env: gym.Env, agent: ActorCriticAgent, num_episodes: int, max_steps: int
+    env: gym.Env, agent: DiscreteActorCriticAgent, num_episodes: int, max_steps: int
 ) -> Tuple[List[Episode], List[float]]:
     episodes = []
     rewards = []
@@ -144,7 +144,7 @@ def _sample_episodes(
     return episodes, rewards
 
 
-def _process_episodes(episodes: List[Episode], agent: ActorCriticAgent, gamma: float) -> Data:
+def _process_episodes(episodes: List[Episode], agent: DiscreteActorCriticAgent, gamma: float) -> Data:
     values = []
     log_probs = []
     returns = []
@@ -196,7 +196,7 @@ if __name__ == "__main__":
     parser.add_argument("--save-gif", action="store_true", help="Save a GIF of an interaction after training")
     args = parser.parse_args()
 
-    agent = ActorCriticAgent(num_features=4, num_actions=2, device=device)
+    agent = DiscreteActorCriticAgent(num_features=4, num_actions=2, device=device)
     env = gym.make("CartPole-v1")
     # For reproducibility
     env.seed(24)

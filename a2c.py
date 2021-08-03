@@ -9,7 +9,7 @@ import torch
 import torch.optim as optim
 from tqdm import tqdm
 
-from agents import ActorCriticAgent
+from agents import DiscreteActorCriticAgent
 from util import evaluate, plot_rewards, render_interaction
 
 # For reproducibility
@@ -29,14 +29,14 @@ class ActorLearner:
     :param env: The environment to collect experience from
     :type env: gym.Env
     :param agent: The learning agent
-    :type agent: ActorCriticAgent
+    :type agent: DiscreteActorCriticAgent
     :param num_episodes: The max number of episodes to collect
     :type num_episodes: int
     :param max_steps: The max number of steps per episode
     :type max_steps: int
     """
 
-    def __init__(self, env: gym.Env, agent: ActorCriticAgent, num_episodes: int, max_steps: int) -> None:
+    def __init__(self, env: gym.Env, agent: DiscreteActorCriticAgent, num_episodes: int, max_steps: int) -> None:
         self._env = env
         self._agent = agent
         self._num_episodes = num_episodes
@@ -95,12 +95,17 @@ class ActorLearner:
 
 # pylint: disable=too-many-locals
 def a2c(
-    agent: ActorCriticAgent, actor_learners: List[ActorLearner], epochs: int, alpha: float, gamma: float, verbose: bool
+    agent: DiscreteActorCriticAgent,
+    actor_learners: List[ActorLearner],
+    epochs: int,
+    alpha: float,
+    gamma: float,
+    verbose: bool,
 ) -> List[float]:
     """Trains an agent using advantage actor-critic (A2C) algorithm
 
     :param agent: The learning agent
-    :type agent: ActorCriticAgent
+    :type agent: DiscreteActorCriticAgent
     :param actor_learners: A list of actor-learners to collect experience
     :type actor_learners: List[ActorLearner]
     :param epochs: The number of epochs to train the agent for
@@ -150,7 +155,7 @@ def a2c(
     return total_rewards
 
 
-def _process_episodes(episodes: List[Episode], agent: ActorCriticAgent, gamma: float) -> Data:
+def _process_episodes(episodes: List[Episode], agent: DiscreteActorCriticAgent, gamma: float) -> Data:
     values = []
     log_probs = []
     returns = []
@@ -199,14 +204,14 @@ if __name__ == "__main__":
     parser.add_argument("--learners", type=int, default=16, help="Number of actor-learners to use")
     parser.add_argument("--episodes", type=int, default=50, help="Episodes to sample per learner")
     parser.add_argument("--max-steps", type=int, default=20, help="Max length of experience to use by the learners")
-    parser.add_argument("--gamma", type=float, default=0.9, help="Discount factor")
     parser.add_argument("--alpha", type=float, default=0.005, help="Learning rate")
+    parser.add_argument("--gamma", type=float, default=0.9, help="Discount factor")
     parser.add_argument("--eval-episodes", type=int, default=100, help="Episodes to use for evaluation")
     parser.add_argument("--verbose", action="store_true", help="Run in verbose mode")
     parser.add_argument("--save-gif", action="store_true", help="Save a GIF of an interaction after training")
     args = parser.parse_args()
 
-    agent = ActorCriticAgent(num_features=4, num_actions=2, device=device)
+    agent = DiscreteActorCriticAgent(num_features=4, num_actions=2, device=device)
 
     actor_learners = []
     for _ in range(args.learners):

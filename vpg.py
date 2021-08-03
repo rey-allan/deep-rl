@@ -7,7 +7,7 @@ import torch
 import torch.optim as optim
 from tqdm import tqdm
 
-from agents import ActorCriticAgent
+from agents import DiscreteActorCriticAgent
 from util import evaluate, plot_rewards, render_interaction
 
 # For reproducibility
@@ -22,12 +22,12 @@ Data = namedtuple("Data", ["values", "log_probs", "returns", "advantages"])
 # pylint: disable=too-many-locals
 def vpg(
     env: gym.Env,
-    agent: ActorCriticAgent,
+    agent: DiscreteActorCriticAgent,
     epochs: int,
     num_episodes: int,
     max_steps: int,
-    gamma: float,
     alpha: float,
+    gamma: float,
     verbose: bool,
 ) -> List[float]:
     """Trains an agent using vanilla policy gradient (a.k.a REINFORCE) algorithm
@@ -35,17 +35,17 @@ def vpg(
     :param env: The environment to train the agent in
     :type env: gym.Env
     :param agent: The agent to train
-    :type agent: ActorCriticAgent
+    :type agent: DiscreteActorCriticAgent
     :param epochs: The number of epochs to train the agent for
     :type epochs: int
     :param num_episodes: The number of episodes to sample per epoch
     :type num_episodes: int
     :param max_steps: The max number of steps per episode
     :type max_steps: int
-    :param gamma: The discount factor
-    :type gamma: float
     :param alpha: The learning rate
     :type alpha: float
+    :param gamma: The discount factor
+    :type gamma: float
     :param verbose: Whether to run in verbose mode or not
     :type verbose: bool
     :return: The total reward per episode
@@ -79,7 +79,7 @@ def vpg(
 
 
 def _sample_episodes(
-    env: gym.Env, agent: ActorCriticAgent, num_episodes: int, max_steps: int
+    env: gym.Env, agent: DiscreteActorCriticAgent, num_episodes: int, max_steps: int
 ) -> Tuple[List[Episode], List[float]]:
     episodes = []
     rewards = []
@@ -121,7 +121,7 @@ def _sample_episodes(
     return episodes, rewards
 
 
-def _process_episodes(episodes: List[Episode], agent: ActorCriticAgent, gamma: float) -> Data:
+def _process_episodes(episodes: List[Episode], agent: DiscreteActorCriticAgent, gamma: float) -> Data:
     values = []
     log_probs = []
     returns = []
@@ -162,14 +162,14 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=200, help="Epochs to train")
     parser.add_argument("--episodes", type=int, default=50, help="Episodes to sample per epoch")
     parser.add_argument("--max-steps", type=int, default=1000, help="Max steps per episode")
-    parser.add_argument("--gamma", type=float, default=0.9, help="Discount factor")
     parser.add_argument("--alpha", type=float, default=0.005, help="Learning rate")
+    parser.add_argument("--gamma", type=float, default=0.9, help="Discount factor")
     parser.add_argument("--eval-episodes", type=int, default=100, help="Episodes to use for evaluation")
     parser.add_argument("--verbose", action="store_true", help="Run in verbose mode")
     parser.add_argument("--save-gif", action="store_true", help="Save a GIF of an interaction after training")
     args = parser.parse_args()
 
-    agent = ActorCriticAgent(num_features=4, num_actions=2, device=device)
+    agent = DiscreteActorCriticAgent(num_features=4, num_actions=2, device=device)
     env = gym.make("CartPole-v1")
     # For reproducibility
     env.seed(24)
@@ -181,8 +181,8 @@ if __name__ == "__main__":
         epochs=args.epochs,
         num_episodes=args.episodes,
         max_steps=args.max_steps,
-        gamma=args.gamma,
         alpha=args.alpha,
+        gamma=args.gamma,
         verbose=args.verbose,
     )
 
