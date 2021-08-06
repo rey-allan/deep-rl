@@ -20,7 +20,7 @@ Note that the actual Neural Network models are defined in the module `agents.py`
 
 ## Results
 
-Agents were trained using each algorithm to solve two classic control Gym environments: `CartpPole-v1` and `Pendulum-v0`. The first one was used with all algorithms except DDPG, which was trained against the second environment. The reason is that DDPG can only be used for continuous action spaces.
+Agents were trained using each algorithm to solve two classic control Gym environments: `CartPole-v1` and `Pendulum-v0`. The first one was used with all algorithms except DDPG, which was trained against the second environment. The reason is that DDPG can only be used for continuous action spaces.
 
 The following figure shows plots of the rewards obtained by each agent during training as well as a GIF of the trained agent interacting with the environment. Each plot and GIF can be found inside the `output/` directory.
 
